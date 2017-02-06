@@ -32,19 +32,30 @@ SET search_path = rate_limit_service, pg_catalog;
 CREATE FUNCTION "createOrUpdateBucket"("limitId" integer, "userToken" character varying, cost bigint) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
-        declare "value" int;
+        declare "b" "rate_limit_service"."bucket"%ROWTYPE;
+        declare "rl" "rate_limit_service"."rateLimit"%ROWTYPE;
+        declare "value" bigint;
         begin
+            select * into "rl" from "rate_limit_service"."rateLimit" where "id" = "limitId" limit 1;
 
             --- make sure the bucket exists
             if not exists (select 1 from "rate_limit_service"."bucket" where "token" = "userToken") then
                 insert into "rate_limit_service"."bucket" ("token", "currentValue") 
-                    values ("userToken", (select "credits" from "rate_limit_service"."rateLimit" where "id" = "limitId"));
+                    values ("userToken", "rl"."credits"::bigint);
             end if;
 
+            --- get the bucket
+            select * into "b" from "rate_limit_service"."bucket" where "token" = "userToken" limit 1;
+
+
+            --- add     
+            "value" := least("rl"."credits"::bigint, cast(("b"."currentValue" + ((extract(epoch from now())-extract(epoch from "b"."updated")+extract(timezone from now())) * ("rl"."credits"/"rl"."interval"))) as bigint))-"cost";
+            -- "value" := (extract(epoch from now())-extract(epoch from "b"."updated")+extract(timezone from now()));
+
+
             --- update the bucket
-            update "rate_limit_service"."bucket" set "currentValue" = ("currentValue"-"cost") where "token" = "userToken";
+            update "rate_limit_service"."bucket" set "currentValue" = "value" where "token" = "userToken";
         
-            select "currentValue" into "value" from "rate_limit_service"."bucket" where "token" = "userToken" limit 1;
             
             return "value";
         end;

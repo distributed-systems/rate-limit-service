@@ -78,19 +78,29 @@
 
 
     create or replace function "rate_limit_service"."createOrUpdateBucket"("limitId" int, "userToken" varchar(64), "cost" bigint) returns bigint as $$
-        declare "value" int;
+        declare "b" "rate_limit_service"."bucket"%ROWTYPE;
+        declare "rl" "rate_limit_service"."rateLimit"%ROWTYPE;
+        declare "value" bigint;
         begin
+            select * into "rl" from "rate_limit_service"."rateLimit" where "id" = "limitId" limit 1;
 
             --- make sure the bucket exists
             if not exists (select 1 from "rate_limit_service"."bucket" where "token" = "userToken") then
                 insert into "rate_limit_service"."bucket" ("token", "currentValue") 
-                    values ("userToken", (select "credits" from "rate_limit_service"."rateLimit" where "id" = "limitId"));
+                    values ("userToken", "rl"."credits"::bigint);
             end if;
 
+            --- get the bucket
+            select * into "b" from "rate_limit_service"."bucket" where "token" = "userToken" limit 1;
+
+
+            --- get the time corrected value
+            "value" := least("rl"."credits"::bigint, cast(("b"."currentValue" + ((extract(epoch from now())-extract(epoch from "b"."updated")+extract(timezone from now())) * ("rl"."credits"/"rl"."interval"))) as bigint))-"cost";
+
+
             --- update the bucket
-            update "rate_limit_service"."bucket" set "currentValue" = ("currentValue"-"cost") where "token" = "userToken";
+            update "rate_limit_service"."bucket" set "currentValue" = "value" where "token" = "userToken";
         
-            select "currentValue" into "value" from "rate_limit_service"."bucket" where "token" = "userToken" limit 1;
             
             return "value";
         end;

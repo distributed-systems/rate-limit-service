@@ -135,7 +135,7 @@
                 if (response.status === 'ok') {
 
                     assert.equal(!!response.data, true);
-                    assert.equal(response.data.currentValue, 192000);
+                    assert(response.data.currentValue > 192000);
 
                     done();
                 } else done(response.toError());

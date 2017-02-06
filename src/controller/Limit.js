@@ -169,6 +169,8 @@
                                                 }) 
                                                 , token: config.token
                                                 , hasLimit: true
+                                                , interval: limit.interval
+                                                , credits: limit.credits
                                             });                                   
                                         } else return Promise.reject(bucketResponse.toError());
                                     });
@@ -194,6 +196,8 @@
                           token: limitedBuckets[0].token
                         , hasLimit: buckets[0].hasLimit
                         , currentValue: buckets[0].hasLimit ? buckets[0].bucket.getInfo().left : null
+                        , interval: buckets[0].interval
+                        , credits: buckets[0].credits
                     } : null);
                 }).catch(err => response.error('bucket_error', `Failed to create a valid bucket!`, err));
             } else reponse.ok([]);

@@ -19,7 +19,7 @@
 
     const testService = new distributed.TestService();
 
-
+    let limitId;
 
 
     describe('Client Class', () => {
@@ -35,32 +35,22 @@
 
 
 
-
-
-        it('Creating a Restriction', function(done) {
+        it('Creating a Limit', function(done) {
             new RelationalRequest({
                   action: 'create'
                 , service: 'rate-limit'
-                , resource: 'restriction'
+                , resource: 'limit'
                 , data: [{
-                      actions: ['create', 'read']
-                    , resources: ['principal']
-                    , service: 'loadThis'
-                    , valueType: 'function'
-                    , comparator: 'gte'
-                    , value: 'now()'
-                    , name: 'make sure that stuff happens'
-                    , description: ''
-                    , property: 'created'
-                    , global: true
-                    , nullable: true
+                      interval: 60
+                    , credits: 200000
                     , principals: [{
-                          id: 92762
+                          id: 123123
                         , type: 'role'
                     }]
                 }]
             }).send(testService).then((response) => {
                 if (response.status === 'created') {
+                    limitId = response.data.id[0];
                     done();
                 } else done(response.toError());
             }).catch(done);
@@ -70,87 +60,32 @@
 
 
 
+        it('Instantiating the client', function(done) {
+            new Client({gateway: testService.createGateway()}).load().then(done).catch(done);
+        });
 
-        it('Creating anoter Restriction', function(done) {
-            new RelationalRequest({
-                  action: 'create'
-                , service: 'rate-limit'
-                , resource: 'restriction'
-                , data: [{
-                      actions: ['create', 'read']
-                    , resources: ['principal']
-                    , service: 'dontLoadThis'
-                    , valueType: 'function'
-                    , comparator: 'gte'
-                    , value: 'now()'
-                    , name: 'make sure that stuff happens'
-                    , description: ''
-                    , property: 'created'
-                    , global: true
-                    , nullable: true
+
+
+
+        it('Getting the current limit', function(done) {
+            const client = new Client({gateway: testService.createGateway()});
+
+            client.load().then(() => {
+                return client.loadLimit([{
+                      token: 'sad'
                     , principals: [{
-                          id: 92762
+                          id: 123123
                         , type: 'role'
                     }]
-                }]
-            }).send(testService).then((response) => {
-                if (response.status === 'created') {
+                }]).then((limit) => {
+                    assert(limit);
+                    assert.equal(limit.hasLimit, true);
+                    assert.equal(limit.currentValue, 200000);
+                    assert.equal(limit.credits, 200000);
+                    assert.equal(limit.interval, 60);
+
                     done();
-                } else done(response.toError());
-            }).catch(done);
-        });
-
-
-
-
-
-
-        it('Loading Restrictions', function(done) {
-            new Client({
-                  gateway: testService
-                , serviceName: 'loadThis'
-            }).getRestrictions([92762]).then((restirctions) => {
-                assert.equal(restirctions.length, 1);
-
-                
-                for (const data of restirctions) {
-
-                    assert.equal(!!data.principals, true);
-                    assert.equal(data.principals.length, 1);
-
-                    assert.equal(!!data.actions, true);
-                    assert.equal(data.actions.length, 2);
-
-                    assert.equal(!!data.resources, true);
-                    assert.equal(data.resources.length, 1);
-
-
-                    assert.equal(data.valueType, 'function');
-                    assert.equal(data.comparator, 'gte');
-                    assert.equal(data.service, 'loadThis');
-                    assert.equal(data.property, 'created');
-                    assert.equal(data.value, 'now()');
-                    assert.equal(data.nullable, true);
-                    assert.equal(data.global, true);
-                }
-
-                done();
-            }).catch(done);
-        });
-
-
-
-
-
-
-        it('Loading Restrictions with no matches', function(done) {
-            new Client({
-                  gateway: testService
-                , serviceName: 'loadThis'
-            }).getRestrictions([3]).then((restirctions) => {
-                assert.equal(restirctions.length, 0);
-
-                done();
+                });
             }).catch(done);
         });
     });
