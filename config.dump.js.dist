@@ -1,0 +1,12 @@
+(function() {
+    'use strict';
+
+
+    module.exports = {
+          database: 'distributed_test'
+        , user: 'postgres'
+        , pass: ''
+        , port: 5432
+        , host: ''
+    };
+})();
