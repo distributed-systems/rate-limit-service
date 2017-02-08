@@ -76,6 +76,7 @@
                         if (this.limitCache.has(config.token)) return this.limitCache.get(config.token);
                         else {
 
+        
                             // get all teh elimits
                             const promise = Promise.all(config.principals.map((principal) => {
 
@@ -193,11 +194,11 @@
                     if (!limitedBuckets.length) limitedBuckets = buckets.filter(l => !l.hasLimit);
                     
                     response.ok(limitedBuckets.length ? {
-                          token: limitedBuckets[0].token
-                        , hasLimit: buckets[0].hasLimit
-                        , currentValue: buckets[0].hasLimit ? buckets[0].bucket.getInfo().left : null
-                        , interval: buckets[0].interval
-                        , credits: buckets[0].credits
+                          token         : limitedBuckets[0].token
+                        , hasLimit      : buckets[0].hasLimit
+                        , currentValue  : buckets[0].hasLimit ? buckets[0].bucket.getInfo().left : null
+                        , interval      : buckets[0].hasLimit ? buckets[0].interval : null
+                        , credits       : buckets[0].hasLimit ? buckets[0].credits : null
                     } : null);
                 }).catch(err => response.error('bucket_error', `Failed to create a valid bucket!`, err));
             } else reponse.ok([]);
