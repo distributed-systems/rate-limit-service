@@ -34,7 +34,7 @@
             if (request.hasObjectData()) {
                 const data = request.data;
                 
-                return this.db.executeQuery(sql, [data.limitId, data.token, data.cost]).then((result) => {
+                return this.db.executeQuery(sql, [data.limitId, data.token, ParseInt(data.cost+'', 10)]).then((result) => {
                     if (result && result.length) {
                         return Promise.resolve(Object.assign({
                             currentValue: parseInt(result[0].createOrUpdateBucket+'', 10)
